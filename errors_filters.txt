@@ -1,0 +1,60 @@
+src/components/charts/CategoryBarChart.tsx(11,15): error TS2305: Module '"../../types"' has no exported member 'CategoryData'.
+src/components/charts/CategoryBarChart.tsx(12,32): error TS2307: Cannot find module '../../utils' or its corresponding type declarations.
+src/components/charts/ChannelBarChart.tsx(11,15): error TS2305: Module '"../../types"' has no exported member 'ChannelData'.
+src/components/charts/ChannelBarChart.tsx(12,32): error TS2307: Cannot find module '../../utils' or its corresponding type declarations.
+src/components/charts/DonutChart.tsx(9,32): error TS2307: Cannot find module '../../utils' or its corresponding type declarations.
+src/components/charts/EvolutionChart.tsx(20,25): error TS2322: Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType>'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/charts/Indice50Chart.tsx(19,25): error TS2322: Type '(value: number | null) => string' is not assignable to type 'Formatter<ValueType, NameType>'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'ValueType | undefined' is not assignable to type 'number | null'.
+      Type 'undefined' is not assignable to type 'number | null'.
+src/components/charts/LineChart.tsx(11,15): error TS2305: Module '"../../types"' has no exported member 'TimeSeriesData'.
+src/components/charts/LineChart.tsx(12,32): error TS2307: Cannot find module '../../utils' or its corresponding type declarations.
+src/components/charts/MedioPagoChart.tsx(18,25): error TS2322: Type 'MedioPagoData[]' is not assignable to type 'ChartDataInput[]'.
+  Type 'MedioPagoData' is not assignable to type 'ChartDataInput'.
+    Index signature for type 'string' is missing in type 'MedioPagoData'.
+src/components/charts/MedioPagoChart.tsx(24,52): error TS2339: Property 'medioPago' does not exist on type 'PieLabelRenderProps'.
+src/components/charts/MedioPagoChart.tsx(24,72): error TS2339: Property 'porcentaje' does not exist on type 'PieLabelRenderProps'.
+src/components/charts/MedioPagoChart.tsx(33,25): error TS2322: Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType>'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/charts/MermaCharts.tsx(23,29): error TS2322: Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType>'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/charts/MermaCharts.tsx(40,29): error TS2322: Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType>'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/charts/ProveedorChart.tsx(20,25): error TS2322: Type '(value: number) => string' is not assignable to type 'Formatter<number, NameType>'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'number | undefined' is not assignable to type 'number'.
+      Type 'undefined' is not assignable to type 'number'.
+src/components/FiltersBar.tsx(185,94): error TS2345: Argument of type 'RefObject<HTMLDivElement | null>' is not assignable to parameter of type 'RefObject<HTMLDivElement>'.
+  Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+    Type 'null' is not assignable to type 'HTMLDivElement'.
+src/components/FiltersBar.tsx(239,118): error TS2345: Argument of type 'RefObject<HTMLDivElement | null>' is not assignable to parameter of type 'RefObject<HTMLDivElement>'.
+  Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+    Type 'null' is not assignable to type 'HTMLDivElement'.
+src/components/FiltersBar.tsx(240,142): error TS2345: Argument of type 'RefObject<HTMLDivElement | null>' is not assignable to parameter of type 'RefObject<HTMLDivElement>'.
+  Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+    Type 'null' is not assignable to type 'HTMLDivElement'.
+src/components/FiltersBar.tsx(241,124): error TS2345: Argument of type 'RefObject<HTMLDivElement | null>' is not assignable to parameter of type 'RefObject<HTMLDivElement>'.
+  Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+    Type 'null' is not assignable to type 'HTMLDivElement'.
+src/components/FiltersBar.tsx(248,124): error TS2345: Argument of type 'RefObject<HTMLDivElement | null>' is not assignable to parameter of type 'RefObject<HTMLDivElement>'.
+  Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+    Type 'null' is not assignable to type 'HTMLDivElement'.
+src/components/FiltersBar.tsx(249,142): error TS2345: Argument of type 'RefObject<HTMLDivElement | null>' is not assignable to parameter of type 'RefObject<HTMLDivElement>'.
+  Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+    Type 'null' is not assignable to type 'HTMLDivElement'.
+src/components/FiltersBar.tsx(256,109): error TS2345: Argument of type 'RefObject<HTMLDivElement | null>' is not assignable to parameter of type 'RefObject<HTMLDivElement>'.
+  Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+    Type 'null' is not assignable to type 'HTMLDivElement'.
+src/components/FiltersBar.tsx(257,109): error TS2345: Argument of type 'RefObject<HTMLDivElement | null>' is not assignable to parameter of type 'RefObject<HTMLDivElement>'.
+  Type 'HTMLDivElement | null' is not assignable to type 'HTMLDivElement'.
+    Type 'null' is not assignable to type 'HTMLDivElement'.

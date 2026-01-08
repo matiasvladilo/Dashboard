@@ -1,111 +1,105 @@
 import { useState, useEffect, useMemo } from 'react';
-import type { RawDataItem, FinancialRecord, Filters } from './types';
+import type { NormalizedRecord, Filters, ValidationWarning, ComparisonSettings } from './types';
+import { adaptPayload } from './utils/payloadAdapter';
 import {
-  parseRecord,
   filterRecords,
   calculateKPIs,
-  groupByCategory,
-  groupByChannel,
-  groupByDate,
-  getUniqueValues,
-  getIncomeDistribution,
-} from './utils';
+  groupByDateEvolution,
+  calculateIndice50OverTime,
+  groupByProveedor,
+  groupByMedioPago,
+  groupByMermaTipo,
+  groupByMermaProducto,
+} from './utils/analytics';
+import { getUniqueValues } from './utils/helpers';
+import { MOCK_DATA } from './mockData';
 import { Header } from './components/Header';
 import { FiltersBar } from './components/FiltersBar';
 import { KpiSection } from './components/KpiSection';
-import { EvolutionLineChart } from './components/charts/LineChart';
-import { CategoryBarChart } from './components/charts/CategoryBarChart';
-import { DonutChart } from './components/charts/DonutChart';
-import { ChannelBarChart } from './components/charts/ChannelBarChart';
-import { TransactionsTable } from './components/TransactionsTable';
+import { EvolutionChart } from './components/charts/EvolutionChart';
+import { Indice50Chart } from './components/charts/Indice50Chart';
+import { ProveedorChart } from './components/charts/ProveedorChart';
+import { MedioPagoChart } from './components/charts/MedioPagoChart';
+import { MermaCharts } from './components/charts/MermaCharts';
+import { TabbedTables } from './components/TabbedTables';
+import { RejectedRecordsModal } from './components/RejectedRecordsModal';
+import type { RejectedRecord } from './utils/payloadAdapter';
+import { Sidebar } from './components/Sidebar';
 import './index.css';
 
-// URL del webhook de n8n (Production URL usando proxy)
+// URL del webhook de n8n (usar proxy local)
 const WEBHOOK_URL = '/api/webhook/4507d4a8-96d8-4f8c-9d07-0ad88c1fb84c';
 
-// Datos mock para desarrollo
-const MOCK_DATA: RawDataItem[] = [
-  { row_number: 1, "Fecha": "03/11/2025", "Tipo": "Ingreso", "Categoría": "Servicios", "Canal": "Cliente A", "#": "F-2024-001", "Importe (€)": "8200.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Desarrollo de aplicación web" },
-  { row_number: 2, "Fecha": "05/11/2025", "Tipo": "Gasto", "Categoría": "Infraestructura", "Canal": "Google Cloud", "#": "G-2024-001", "Importe (€)": "-780.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Servicios cloud mensual" },
-  { row_number: 3, "Fecha": "08/11/2025", "Tipo": "Ingreso", "Categoría": "YouTube", "Canal": "YouTube", "#": "F-2024-002", "Importe (€)": "2500.00", "Estado de Pago": "Pendiente", "Descripción Adicional": "Ingresos por publicidad" },
-  { row_number: 4, "Fecha": "10/11/2025", "Tipo": "Gasto", "Categoría": "APIs IA", "Canal": "OpenAI", "#": "G-2024-002", "Importe (€)": "-450.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Uso de API GPT-4" },
-  { row_number: 5, "Fecha": "12/11/2025", "Tipo": "Ingreso", "Categoría": "Servicios", "Canal": "Cliente B", "#": "F-2024-003", "Importe (€)": "5500.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Consultoría en IA" },
-  { row_number: 6, "Fecha": "15/11/2025", "Tipo": "Gasto", "Categoría": "APIs IA", "Canal": "Anthropic", "#": "G-2024-003", "Importe (€)": "-320.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Uso de API Claude" },
-  { row_number: 7, "Fecha": "18/11/2025", "Tipo": "Ingreso", "Categoría": "Servicios", "Canal": "Cliente C", "#": "F-2024-004", "Importe (€)": "12000.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Desarrollo de chatbot empresarial" },
-  { row_number: 8, "Fecha": "20/11/2025", "Tipo": "Gasto", "Categoría": "Infraestructura", "Canal": "AWS", "#": "G-2024-004", "Importe (€)": "-950.00", "Estado de Pago": "Pendiente", "Descripción Adicional": "Servicios AWS mensual" },
-  { row_number: 9, "Fecha": "22/11/2025", "Tipo": "Ingreso", "Categoría": "Cursos", "Canal": "Udemy", "#": "F-2024-005", "Importe (€)": "1800.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Ventas curso de IA" },
-  { row_number: 10, "Fecha": "25/11/2025", "Tipo": "Gasto", "Categoría": "Marketing", "Canal": "Google Ads", "#": "G-2024-005", "Importe (€)": "-600.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Campaña publicitaria" },
-  { row_number: 11, "Fecha": "28/11/2025", "Tipo": "Ingreso", "Categoría": "Servicios", "Canal": "Cliente A", "#": "F-2024-006", "Importe (€)": "7500.00", "Estado de Pago": "Pendiente", "Descripción Adicional": "Mantenimiento mensual" },
-  { row_number: 12, "Fecha": "01/12/2025", "Tipo": "Gasto", "Categoría": "Herramientas", "Canal": "Figma", "#": "G-2024-006", "Importe (€)": "-45.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Suscripción Figma Pro" },
-  { row_number: 13, "Fecha": "03/12/2025", "Tipo": "Ingreso", "Categoría": "YouTube", "Canal": "YouTube", "#": "F-2024-007", "Importe (€)": "3200.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Patrocinio video" },
-  { row_number: 14, "Fecha": "05/12/2025", "Tipo": "Gasto", "Categoría": "APIs IA", "Canal": "OpenAI", "#": "G-2024-007", "Importe (€)": "-520.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Uso intensivo GPT-4" },
-  { row_number: 15, "Fecha": "08/12/2025", "Tipo": "Ingreso", "Categoría": "Servicios", "Canal": "Cliente D", "#": "F-2024-008", "Importe (€)": "15000.00", "Estado de Pago": "Pagado", "Descripción Adicional": "Proyecto automatización IA" },
-];
-
 function App() {
-  const [records, setRecords] = useState<FinancialRecord[]>([]);
+  const [records, setRecords] = useState<NormalizedRecord[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [warnings, setWarnings] = useState<ValidationWarning[]>([]);
+  const [rejectedRecords, setRejectedRecords] = useState<RejectedRecord[]>([]);
+  const [showRejectedModal, setShowRejectedModal] = useState(false);
   const [filters, setFilters] = useState<Filters>({
+    locales: [],
     fechaDesde: null,
     fechaHasta: null,
-    tipo: "Todos",
-    categorias: [],
-    canales: [],
-    estadoPago: "Todos",
+    source: "Todos",
     busqueda: "",
+    proveedores: [],
+    mediosPagoGastos: [],
+    subtiposDocs: [],
+    numCheques: [],
+    responsables: [],
+    mediosPagoVentas: [],
+    tiposMerma: [],
+    productos: [],
   });
 
-  // Cargar datos
+  const [comparison, setComparison] = useState<ComparisonSettings>({
+    enabled: false,
+    fechaDesdeB: null,
+    fechaHastaB: null,
+  });
+
+  // Load data
   const loadData = async () => {
     setLoading(true);
     setError(null);
+    setWarnings([]);
 
     try {
+      let rawPayload: any;
+
       if (WEBHOOK_URL) {
-        console.log('Iniciando fetch a:', WEBHOOK_URL);
-        const response = await fetch(WEBHOOK_URL);
-        console.log('Estado respuesta:', response.status, response.statusText);
-
-        if (!response.ok) {
-          const text = await response.text();
-          console.error('Cuerpo del error:', text);
-          throw new Error(`Error HTTP: ${response.status} - ${text}`);
-        }
-
-        // Leer primero como texto para depuración
-        const textData = await response.text();
-        console.log('Cuerpo de respuesta (raw text):', textData);
-
-        if (!textData || textData.trim() === "") {
-          throw new Error('La respuesta del servidor está vacía');
-        }
-
-        let rawData;
         try {
-          rawData = JSON.parse(textData);
-        } catch (e) {
-          throw new Error(`Error al parsear JSON: ${e instanceof Error ? e.message : 'JSON inválido'}\nContenido recibido: ${textData.substring(0, 100)}...`);
+          const response = await fetch(WEBHOOK_URL);
+          if (response.ok) {
+            const textData = await response.text();
+            if (textData && textData.trim()) {
+              rawPayload = JSON.parse(textData);
+            } else {
+              throw new Error('Respuesta vacía del webhook');
+            }
+          } else {
+            throw new Error(`HTTP ${response.status}`);
+          }
+        } catch (fetchError) {
+          console.warn('Usando datos mock:', fetchError);
+          rawPayload = MOCK_DATA;
         }
-
-        console.log('Datos recibidos (parsed):', rawData);
-
-        if (!Array.isArray(rawData)) {
-          throw new Error('El formato de datos recibido no es un array');
-        }
-
-        const parsedRecords = rawData.map(parseRecord);
-        console.log('Datos procesados:', parsedRecords);
-        setRecords(parsedRecords);
       } else {
-        // Usar datos mock si no hay URL
-        await new Promise(resolve => setTimeout(resolve, 800)); // Simular carga
-        const parsedRecords = MOCK_DATA.map(parseRecord);
-        setRecords(parsedRecords);
+        rawPayload = MOCK_DATA;
+      }
+
+      const { records: normalizedRecords, warnings: adapterWarnings, rejectedRecords: rejected } = adaptPayload(rawPayload);
+      setRecords(normalizedRecords);
+      setWarnings(adapterWarnings);
+      setRejectedRecords(rejected);
+
+      if (normalizedRecords.length === 0) {
+        setError('No se encontraron registros válidos');
       }
     } catch (err) {
-      console.error('Error completo:', err);
-      setError(err instanceof Error ? err.message : 'Error al cargar datos del servidor');
+      console.error('Error:', err);
+      setError(err instanceof Error ? err.message : 'Error desconocido');
     } finally {
       setLoading(false);
     }
@@ -115,47 +109,80 @@ function App() {
     loadData();
   }, []);
 
-  // Datos filtrados
-  const filteredRecords = useMemo(() => {
-    return filterRecords(records, filters);
-  }, [records, filters]);
+  const locales = useMemo(() => getUniqueValues(records, 'local'), [records]);
+  const responsables = useMemo(() => {
+    const ventasRecords = records.filter(r => r.source === 'ventas' && r.responsable);
+    return getUniqueValues(ventasRecords, 'responsable');
+  }, [records]);
+  const proveedores = useMemo(() => {
+    const gastosRecords = records.filter(r => r.source === 'gastos' && r.proveedorCliente);
+    return getUniqueValues(gastosRecords, 'proveedorCliente');
+  }, [records]);
+  const mediosPagoVentas = useMemo(() => {
+    const ventasRecords = records.filter(r => r.source === 'ventas' && r.medioPago);
+    return getUniqueValues(ventasRecords, 'medioPago');
+  }, [records]);
+  const mediosPagoGastos = useMemo(() => {
+    const gastosRecords = records.filter(r => r.source === 'gastos' && r.medioPago);
+    return getUniqueValues(gastosRecords, 'medioPago');
+  }, [records]);
+  const subtiposDocs = useMemo(() => {
+    const gastosRecords = records.filter(r => r.source === 'gastos' && r.subtipoDoc);
+    return getUniqueValues(gastosRecords, 'subtipoDoc');
+  }, [records]);
+  const productos = useMemo(() => {
+    const mermaRecords = records.filter(r => r.source === 'merma' && r.producto);
+    return getUniqueValues(mermaRecords, 'producto');
+  }, [records]);
+  const tiposMerma = useMemo(() => {
+    const mermaRecords = records.filter(r => r.source === 'merma' && r.tipoMerma);
+    return getUniqueValues(mermaRecords, 'tipoMerma');
+  }, [records]);
 
-  // KPIs calculados
-  const kpis = useMemo(() => {
-    return calculateKPIs(filteredRecords);
-  }, [filteredRecords]);
+  // Main Period Data
+  const filteredRecords = useMemo(() => filterRecords(records, filters), [records, filters]);
+  const kpis = useMemo(() => calculateKPIs(filteredRecords), [filteredRecords]);
+  const evolutionData = useMemo(() => groupByDateEvolution(filteredRecords), [filteredRecords]);
+  const indice50Data = useMemo(() => calculateIndice50OverTime(filteredRecords), [filteredRecords]);
+  const proveedorData = useMemo(() => groupByProveedor(filteredRecords), [filteredRecords]);
+  const medioPagoData = useMemo(() => groupByMedioPago(filteredRecords), [filteredRecords]);
+  const mermaTipoData = useMemo(() => groupByMermaTipo(filteredRecords), [filteredRecords]);
+  const mermaProductoData = useMemo(() => groupByMermaProducto(filteredRecords), [filteredRecords]);
 
-  // Datos para gráficos
-  const categoryData = useMemo(() => groupByCategory(filteredRecords), [filteredRecords]);
-  const channelData = useMemo(() => groupByChannel(filteredRecords), [filteredRecords]);
-  const timeSeriesData = useMemo(() => groupByDate(filteredRecords), [filteredRecords]);
-  const incomeDistribution = useMemo(() => getIncomeDistribution(filteredRecords), [filteredRecords]);
+  // Comparison Period Data
+  const filteredRecordsB = useMemo(() => {
+    if (!comparison.enabled) return [];
+    return filterRecords(records, {
+      ...filters,
+      fechaDesde: comparison.fechaDesdeB,
+      fechaHasta: comparison.fechaHastaB
+    });
+  }, [records, filters, comparison]);
 
-  // Valores únicos para filtros
-  const categorias = useMemo(() => getUniqueValues(records, 'categoria'), [records]);
-  const canales = useMemo(() => getUniqueValues(records, 'canal'), [records]);
+  const kpisB = useMemo(() => {
+    if (!comparison.enabled) return null;
+    return calculateKPIs(filteredRecordsB);
+  }, [comparison.enabled, filteredRecordsB]);
 
-  // Estado de carga
   if (loading) {
     return (
-      <div className="app">
-        <div className="loading-container">
-          <div className="loading-spinner"></div>
-          <p className="loading-text">Cargando datos…</p>
+      <div className="bg-background-dark min-h-screen flex items-center justify-center text-white">
+        <div className="flex flex-col items-center gap-4">
+          <div className="w-12 h-12 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+          <p className="text-gray-400 font-medium tracking-wide">Cargando inteligencia financiera...</p>
         </div>
       </div>
     );
   }
 
-  // Estado de error
   if (error) {
     return (
-      <div className="app">
-        <div className="error-container">
-          <span className="error-icon">⚠️</span>
-          <h2 className="error-title">Error al cargar datos</h2>
-          <p className="error-message">{error}</p>
-          <button className="retry-btn" onClick={loadData}>
+      <div className="bg-background-dark min-h-screen flex items-center justify-center text-white p-8">
+        <div className="max-w-md w-full bg-[#1c242d] border border-gray-800 rounded-2xl p-8 text-center">
+          <span className="material-symbols-outlined text-red-500 text-6xl mb-4">warning</span>
+          <h2 className="text-2xl font-bold mb-2">Error de conexión</h2>
+          <p className="text-gray-400 mb-6">{error}</p>
+          <button className="w-full bg-primary hover:bg-blue-600 text-white font-bold py-3 rounded-xl transition-colors" onClick={loadData}>
             Reintentar
           </button>
         </div>
@@ -164,38 +191,87 @@ function App() {
   }
 
   return (
-    <div className="app">
-      <div className="dashboard-container">
-        <Header
-          fechaDesde={filters.fechaDesde}
-          fechaHasta={filters.fechaHasta}
-        />
+    <div className="bg-background-dark font-display text-slate-900 dark:text-white h-screen flex w-full overflow-hidden">
+      <Sidebar />
 
-        <FiltersBar
-          filters={filters}
-          onFiltersChange={setFilters}
-          categorias={categorias}
-          canales={canales}
-        />
+      <main className="flex-1 flex flex-col h-full relative overflow-hidden">
+        {/* Mobile Header */}
+        <header className="w-full h-16 bg-[#111418] border-b border-gray-800 flex items-center justify-between px-6 shrink-0 z-10 lg:hidden">
+          <div className="flex items-center gap-3">
+            <button className="text-white">
+              <span className="material-symbols-outlined">menu</span>
+            </button>
+            <span className="text-white font-bold">Minimarket Mgr</span>
+          </div>
+        </header>
 
-        <KpiSection
-          ingresosTotales={kpis.ingresosTotales}
-          gastosTotales={kpis.gastosTotales}
-          beneficioNeto={kpis.beneficioNeto}
-          categoriaMasRentable={kpis.categoriaMasRentable}
-          numeroOperaciones={kpis.numeroOperaciones}
-          ticketMedioServicios={kpis.ticketMedioServicios}
-        />
+        {/* Scrollable Canvas */}
+        <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 md:p-8 space-y-2 custom-scrollbar">
+          <Header
+            fechaDesde={filters.fechaDesde}
+            fechaHasta={filters.fechaHasta}
+            onUpdateData={loadData}
+            isComparing={comparison.enabled}
+            fechaDesdeB={comparison.fechaDesdeB}
+            fechaHastaB={comparison.fechaHastaB}
+          />
 
-        <section className="charts-section">
-          <EvolutionLineChart data={timeSeriesData} />
-          <CategoryBarChart data={categoryData} />
-          <DonutChart data={incomeDistribution} />
-          <ChannelBarChart data={channelData} />
-        </section>
+          <FiltersBar
+            filters={filters}
+            onFiltersChange={setFilters}
+            comparison={comparison}
+            onComparisonChange={setComparison}
+            locales={locales}
+            responsables={responsables}
+            proveedores={proveedores}
+            mediosPagoVentas={mediosPagoVentas}
+            mediosPagoGastos={mediosPagoGastos}
+            subtiposDocs={subtiposDocs}
+            productos={productos}
+            tiposMerma={tiposMerma}
+            warnings={warnings}
+            rejectedRecords={rejectedRecords}
+            onShowRejected={() => setShowRejectedModal(true)}
+          />
 
-        <TransactionsTable records={filteredRecords} />
-      </div>
+          <KpiSection kpis={kpis} kpisB={kpisB} comparisonEnabled={comparison.enabled} />
+
+          <section className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white dark:bg-[#1c242d] border border-slate-100 dark:border-gray-800 rounded-3xl p-6 hover:border-indigo-200 dark:hover:border-gray-700 transition-all shadow-sm">
+              <EvolutionChart data={evolutionData} />
+            </div>
+            <div className="bg-white dark:bg-[#1c242d] border border-slate-100 dark:border-gray-800 rounded-3xl p-6 hover:border-indigo-200 dark:hover:border-gray-700 transition-all shadow-sm">
+              <Indice50Chart data={indice50Data} />
+            </div>
+          </section>
+
+          <section className="grid grid-cols-1 xl:grid-cols-2 gap-6 mb-8">
+            <div className="bg-white dark:bg-[#1c242d] border border-slate-100 dark:border-gray-800 rounded-3xl p-6 hover:border-indigo-200 dark:hover:border-gray-700 transition-all shadow-sm">
+              <ProveedorChart data={proveedorData} />
+            </div>
+            <div className="bg-white dark:bg-[#1c242d] border border-slate-100 dark:border-gray-800 rounded-3xl p-6 hover:border-indigo-200 dark:hover:border-gray-700 transition-all shadow-sm">
+              <MedioPagoChart data={medioPagoData} />
+            </div>
+          </section>
+
+          <section className="mb-8">
+            <div className="bg-white dark:bg-[#1c242d] border border-slate-100 dark:border-gray-800 rounded-3xl p-6 hover:border-indigo-200 dark:hover:border-gray-700 transition-all shadow-sm">
+              <MermaCharts tipoData={mermaTipoData} productoData={mermaProductoData} />
+            </div>
+          </section>
+
+          <div className="bg-white dark:bg-[#1c242d] border border-slate-100 dark:border-gray-800 rounded-3xl overflow-hidden mb-8 shadow-sm">
+            <TabbedTables records={filteredRecords} />
+          </div>
+
+          {showRejectedModal && (
+            <RejectedRecordsModal
+              rejectedRecords={rejectedRecords}
+              onClose={() => setShowRejectedModal(false)}
+            />
+          )}
+        </div>
+      </main>
     </div>
   );
 }
