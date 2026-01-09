@@ -35,12 +35,17 @@ export function FiltersBar({
 }: FiltersBarProps) {
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [showDatePicker, setShowDatePicker] = useState(false);
+    const [showLocalesDropdown, setShowLocalesDropdown] = useState(false);
     const datePickerRef = useRef<HTMLDivElement>(null);
+    const localesRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         function handleClickOutside(event: MouseEvent) {
             if (datePickerRef.current && !datePickerRef.current.contains(event.target as Node)) {
                 setShowDatePicker(false);
+            }
+            if (localesRef.current && !localesRef.current.contains(event.target as Node)) {
+                setShowLocalesDropdown(false);
             }
         }
         document.addEventListener("mousedown", handleClickOutside);
@@ -155,19 +160,50 @@ export function FiltersBar({
                     )}
                 </div>
 
-                {/* Local Switcher */}
-                <div className="relative flex-1 min-w-[200px]">
-                    <div className="absolute inset-y-0 left-0 pl-5 flex items-center pointer-events-none">
-                        <span className="material-symbols-outlined text-slate-400" style={{ fontSize: '20px' }}>location_on</span>
-                    </div>
-                    <select
-                        className="bg-slate-50 dark:bg-[#1f2937] border border-slate-100 dark:border-gray-700 text-slate-700 dark:text-gray-200 text-xs font-black rounded-2xl focus:ring-2 focus:ring-indigo-600/20 focus:border-indigo-600 block w-full pl-12 h-14 appearance-none cursor-pointer hover:border-slate-300 dark:hover:border-gray-500 transition-all shadow-sm"
-                        onChange={(e) => e.target.value === "All" ? onFiltersChange({ ...filters, locales: [] }) : handleMultiSelect('locales', e.target.value)}
-                        value={filters.locales.length === 1 ? filters.locales[0] : (filters.locales.length > 1 ? "Multiple" : "All")}
+                {/* Local Switcher - Premium Multi-select */}
+                <div className="relative flex-1 min-w-[200px]" ref={localesRef}>
+                    <button
+                        onClick={() => setShowLocalesDropdown(!showLocalesDropdown)}
+                        className={`flex items-center gap-4 h-14 w-full px-6 rounded-2xl border transition-all duration-300 ${showLocalesDropdown || filters.locales.length > 0 ? 'bg-slate-900 dark:bg-slate-800 border-slate-900 text-white shadow-lg' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500 hover:border-slate-300 dark:hover:border-indigo-500/30'}`}
                     >
-                        <option value="All" className="dark:bg-[#1f2937] dark:text-gray-200">Todos los Locales</option>
-                        {locales.map(l => <option key={l} value={l} className="dark:bg-[#1f2937] dark:text-gray-200">{l}</option>)}
-                    </select>
+                        <span className="material-symbols-outlined" style={{ fontSize: '20px' }}>location_on</span>
+                        <div className="flex flex-col items-start translate-y-[-1px] overflow-hidden">
+                            <span className={`text-[9px] uppercase font-black tracking-widest ${showLocalesDropdown || filters.locales.length > 0 ? 'text-slate-400' : 'text-slate-400'}`}>Ubicación</span>
+                            <span className="text-xs font-black truncate w-full">
+                                {filters.locales.length === 0 ? "Todos los Locales" : (filters.locales.length === 1 ? filters.locales[0] : `${filters.locales.length} locales`)}
+                            </span>
+                        </div>
+                        <span className={`material-symbols-outlined ml-auto transition-transform duration-300 ${showLocalesDropdown ? 'rotate-180' : ''}`} style={{ fontSize: '20px' }}>expand_more</span>
+                    </button>
+
+                    {showLocalesDropdown && (
+                        <div className="absolute top-full left-0 mt-4 p-4 bg-white dark:bg-[#181f26] border border-slate-100 dark:border-white/10 rounded-3xl shadow-2xl z-50 w-full min-w-[300px] animate-dropdown-enter origin-top">
+                            <div className="flex flex-col gap-1 max-h-[300px] overflow-y-auto pr-2 custom-scrollbar">
+                                <button
+                                    onClick={() => onFiltersChange({ ...filters, locales: [] })}
+                                    className={`flex items-center justify-between p-3 rounded-xl transition-all ${filters.locales.length === 0 ? 'bg-indigo-600 text-white shadow-md' : 'hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-gray-300'}`}
+                                >
+                                    <span className="text-xs font-black">Todos los Locales</span>
+                                    {filters.locales.length === 0 && <span className="material-symbols-outlined" style={{ fontSize: '18px' }}>check</span>}
+                                </button>
+
+                                <div className="h-px bg-slate-100 dark:bg-white/5 my-2"></div>
+
+                                {locales.map(l => (
+                                    <button
+                                        key={l}
+                                        onClick={() => handleMultiSelect('locales', l)}
+                                        className={`flex items-center justify-between p-3 rounded-xl transition-all ${filters.locales.includes(l) ? 'bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border border-indigo-100 dark:border-indigo-500/20' : 'hover:bg-slate-50 dark:hover:bg-white/5 text-slate-700 dark:text-gray-300 border border-transparent'}`}
+                                    >
+                                        <span className="text-xs font-bold">{l}</span>
+                                        <div className={`w-5 h-5 rounded-lg border flex items-center justify-center transition-all ${filters.locales.includes(l) ? 'bg-indigo-600 border-indigo-600 text-white' : 'bg-slate-50 dark:bg-white/5 border-slate-200 dark:border-white/10'}`}>
+                                            {filters.locales.includes(l) && <span className="material-symbols-outlined text-[14px] font-black">check</span>}
+                                        </div>
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
                 </div>
 
                 {/* Search Engine */}
@@ -216,6 +252,114 @@ export function FiltersBar({
                     )}
                 </div>
             </div>
+
+            {/* Advanced Filters Panel */}
+            {showAdvanced && (
+                <div className="bg-white dark:bg-[#15171a] p-8 rounded-[2.5rem] border border-slate-100 dark:border-white/5 shadow-2xl animate-dropdown-enter relative overflow-hidden group">
+                    <div className="absolute top-0 right-0 p-12 opacity-[0.03] rotate-12 pointer-events-none group-hover:rotate-45 transition-transform duration-1000">
+                        <span className="material-symbols-outlined" style={{ fontSize: '180px' }}>tune</span>
+                    </div>
+
+                    <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-4">
+                                <div className="w-12 h-12 rounded-2xl bg-indigo-600 flex items-center justify-center text-white shadow-lg shadow-indigo-600/20">
+                                    <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>filter_list</span>
+                                </div>
+                                <div className="flex flex-col">
+                                    <h3 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">Filtros Avanzados</h3>
+                                    <p className="text-slate-400 text-[10px] font-black uppercase tracking-widest">Segmenta tus datos con precisión quirúrgica</p>
+                                </div>
+                            </div>
+                            <button
+                                onClick={() => onFiltersChange({
+                                    ...filters,
+                                    proveedores: [],
+                                    mediosPagoGastos: [],
+                                    subtiposDocs: [],
+                                    responsables: [],
+                                    mediosPagoVentas: [],
+                                    tiposMerma: [],
+                                    productos: [],
+                                })}
+                                className="px-6 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest text-rose-500 hover:bg-rose-50 dark:hover:bg-rose-500/10 transition-all border border-transparent hover:border-rose-100"
+                            >
+                                Limpiar Filtros
+                            </button>
+                        </div>
+
+                        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+                            {/* Ventas Filters */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-indigo-600 mb-2">
+                                    <span className="material-symbols-outlined text-sm">payments</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Ventas</span>
+                                </div>
+                                <div className="space-y-3">
+                                    <p className="text-[11px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-wider ml-1">Medios de Pago</p>
+                                    <div className="flex flex-wrap gap-2">
+                                        {mediosPagoVentas.map(m => (
+                                            <button
+                                                key={m}
+                                                onClick={() => handleMultiSelect('mediosPagoVentas', m)}
+                                                className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all border ${filters.mediosPagoVentas.includes(m) ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-600/20' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500 hover:border-slate-200'}`}
+                                            >
+                                                {m}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Gastos Filters */}
+                            <div className="space-y-4 lg:col-span-2">
+                                <div className="flex items-center gap-2 text-rose-500 mb-2">
+                                    <span className="material-symbols-outlined text-sm">shopping_cart</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Gastos</span>
+                                </div>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                    <div className="space-y-3">
+                                        <p className="text-[11px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-wider ml-1">Medios de Pago</p>
+                                        <div className="flex flex-wrap gap-2">
+                                            {mediosPagoGastos.map(m => (
+                                                <button
+                                                    key={m}
+                                                    onClick={() => handleMultiSelect('mediosPagoGastos', m)}
+                                                    className={`px-4 py-2 rounded-xl text-[10px] font-black transition-all border ${filters.mediosPagoGastos.includes(m) ? 'bg-rose-500 border-rose-500 text-white shadow-lg shadow-rose-500/20' : 'bg-slate-50 dark:bg-white/5 border-slate-100 dark:border-white/5 text-slate-500 hover:border-slate-200'}`}
+                                                >
+                                                    {m}
+                                                </button>
+                                            ))}
+                                        </div>
+                                    </div>
+                                    <div className="space-y-3">
+                                        <p className="text-[11px] font-black text-slate-400 dark:text-gray-500 uppercase tracking-wider ml-1">Uso de Filtros</p>
+                                        <p className="text-xs text-slate-400 italic">Pronto: Filtros por proveedores y subtipos de documentos.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Indicators */}
+                            <div className="space-y-4">
+                                <div className="flex items-center gap-2 text-emerald-500 mb-2">
+                                    <span className="material-symbols-outlined text-sm">analytics</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest">Resumen de Selección</span>
+                                </div>
+                                <div className="bg-slate-50 dark:bg-black/20 p-5 rounded-[2rem] border border-slate-100 dark:border-white/5 space-y-3">
+                                    <div className="flex justify-between items-center">
+                                        <span className="text-[10px] font-black text-slate-400 uppercase">Filtros Activos</span>
+                                        <span className="px-3 py-1 bg-indigo-600 text-white text-[10px] font-black rounded-full">
+                                            {[...filters.locales, ...filters.mediosPagoVentas, ...filters.mediosPagoGastos].length}
+                                        </span>
+                                    </div>
+                                    <div className="h-px bg-slate-200 dark:bg-white/5"></div>
+                                    <p className="text-[10px] text-slate-500 leading-relaxed font-medium">Los cambios se aplican automáticamente a todos los gráficos y KPIs del dashboard.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Comparison Logic Layer */}
             {comparison.enabled && (

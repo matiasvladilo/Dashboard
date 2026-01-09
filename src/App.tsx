@@ -28,7 +28,7 @@ import { Sidebar } from './components/Sidebar';
 import './index.css';
 
 // URL del webhook de n8n (usar proxy local)
-const WEBHOOK_URL = 'https://n8n.srv1215012.hstgr.cloud/webhook-test/4507d4a8-96d8-4f8c-9d07-0ad88c1fb84c';
+const WEBHOOK_URL = '/api/webhook/4507d4a8-96d8-4f8c-9d07-0ad88c1fb84c';
 
 function App() {
   const [records, setRecords] = useState<NormalizedRecord[]>([]);
