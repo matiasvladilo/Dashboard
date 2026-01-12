@@ -110,6 +110,43 @@ export function adaptPayload(rawPayload: unknown, defaultLocal: string = 'N/A'):
             return { records, warnings, rejectedRecords };
         }
 
+        // ============================================
+        // DEDUPLICATION: Remove duplicate records
+        // Uses row_number as primary key if available
+        // ============================================
+        const originalCount = dataArray.length;
+        const seenRows = new Map<string, any>();
+        const deduplicatedArray: any[] = [];
+
+        dataArray.forEach((item) => {
+            // Create a unique key based on row_number, or fallback to a composite key
+            const rowNum = getValue(item, ['row_number', 'rowNumber', 'Row', 'row']);
+            const local = getValue(item, ['local', 'Local', 'LOCAL']) || '';
+            const fecha = getValue(item, ['date', 'Fecha', 'fecha', 'Date', 'FECHA']) || '';
+
+            // Use row_number if available, otherwise create composite key
+            const uniqueKey = rowNum
+                ? `${rowNum}-${local}`
+                : `${local}-${fecha}-${JSON.stringify(item)}`;
+
+            if (!seenRows.has(uniqueKey)) {
+                seenRows.set(uniqueKey, item);
+                deduplicatedArray.push(item);
+            }
+        });
+
+        const duplicatesRemoved = originalCount - deduplicatedArray.length;
+        if (duplicatesRemoved > 0) {
+            console.log(`⚠ Removed ${duplicatesRemoved} duplicate records (${originalCount} → ${deduplicatedArray.length})`);
+            warnings.push({
+                level: 'warning',
+                message: `Se detectaron y eliminaron ${duplicatesRemoved} registros duplicados del webhook`,
+                affectedRecords: duplicatesRemoved,
+            });
+        }
+
+        dataArray = deduplicatedArray;
+
         // Process each raw record
         let skippedRecords = 0;
         let invalidSourceRecords = 0;
